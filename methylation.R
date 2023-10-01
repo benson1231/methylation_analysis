@@ -540,3 +540,14 @@ ggplot(tran.reg, aes(x = delta, y = logFC, color = group)) +
   geom_vline(xintercept = -0.2, colour="#990000", linetype="dashed") +
   xlab("mean methylation diffrences") + 
   ylab("Log2 expression change") 
+
+
+
+
+
+
+
+
+
+
+
