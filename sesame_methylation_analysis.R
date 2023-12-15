@@ -51,52 +51,52 @@ all <- readRDS("/Users/benson/Documents/project/methy1/all.RDS")  # 全部probe
 
 # chromosome visualization by Genomic Region -----------------------------
 visualizeRegion(
-  'chr19',10260000,10380000, all, platform='EPIC',
+  "chr7",55019017,55211628, all, platform='EPIC', genome = "hg38",
   show.probeNames = TRUE)
 
 # chromosome visualization by Gene Name ----------------------------------
-visualizeGene("APEX1", betas = all, platform='EPIC')
+visualizeGene("APEX1", betas = all, platform='EPIC', genome = "hg38")
 # 組別分開
 all %>% 
   select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_AS, ip_L_V_L_AS_BAP) %>% 
-  visualizeGene("TP53", betas = ., platform='EPIC')
+  visualizeGene("TP53", betas = ., platform='EPIC', genome = "hg38")
 all %>% 
   select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_CO, ip_L_V_L_CO_BAP) %>% 
-  visualizeGene("TP53", betas = ., platform='EPIC')
+  visualizeGene("TP53", betas = ., platform='EPIC', genome = "hg38")
 all %>% 
   select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_LCD, ip_L_V_L_LCD_BAP) %>% 
-  visualizeGene("TP53", betas = ., platform='EPIC')
+  visualizeGene("TP53", betas = ., platform='EPIC', genome = "hg38")
 all %>% 
   select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_HCD, ip_L_V_L_HCD_BAP) %>% 
-  visualizeGene("TP53", betas = ., platform='EPIC')
+  visualizeGene("TP53", betas = ., platform='EPIC', genome = "hg38")
 
 ### gene name output
 gene_list <- c("APEX1","TP53","BRCA1")
 for(i in gene_list){
   png(paste0(i,"_gene.png"))
-  visualizeGene(i, betas = all, platform='EPIC') %>% print()
+  visualizeGene(i, betas = all, platform='EPIC', genome = "hg38") %>% print()
   dev.off()
 }
 for(i in gene_list){
   png(paste0(i,"As_gene.png"))
   all %>% 
     select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_AS, ip_L_V_L_AS_BAP) %>% 
-    visualizeGene(i, betas = ., platform='EPIC') %>% print()
+    visualizeGene(i, betas = ., platform='EPIC', genome = "hg38") %>% print()
   dev.off()
   png(paste0(i,"Co_gene.png"))
   all %>% 
     select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_CO, ip_L_V_L_CO_BAP) %>% 
-    visualizeGene("TP53", betas = ., platform='EPIC') %>% print()
+    visualizeGene("TP53", betas = ., platform='EPIC', genome = "hg38") %>% print()
   dev.off()
   png(paste0(i,"L_Cd_gene.png"))
   all %>% 
     select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_LCD, ip_L_V_L_LCD_BAP) %>% 
-    visualizeGene("TP53", betas = ., platform='EPIC') %>% print()
+    visualizeGene("TP53", betas = ., platform='EPIC', genome = "hg38") %>% print()
   dev.off()
   png(paste0(i,"H_Cd_gene.png"))
   all %>% 
     select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_HCD, ip_L_V_L_HCD_BAP) %>% 
-    visualizeGene("TP53", betas = ., platform='EPIC') %>% print()
+    visualizeGene("TP53", betas = ., platform='EPIC', genome = "hg38") %>% print()
   dev.off()
 }
 
@@ -104,39 +104,40 @@ for(i in gene_list){
 save_image <- function(x = all, 
                 group = all,
                 gene = gene,
-                platform = "EPIC"){
+                platform = "EPIC",
+                genome = "hg38"){
   if(group == "all"){
     cat(c("-> plotting", gene, "in all group\n"))
     png(paste(group,gene,".png"))
-    visualizeGene(gene, betas = all, platform = platform) %>% print()
+    visualizeGene(gene, betas = all, platform = platform, genome = genome) %>% print()
     dev.off()
   } else if(group == "as"){
     cat(c("-> plotting", gene, "in As group\n"))
     png(paste(group,gene,".png"))
     all %>% 
       select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_AS, ip_L_V_L_AS_BAP) %>% 
-      visualizeGene(gene, betas = ., platform = platform) %>% print()
+      visualizeGene(gene, betas = ., platform = platform, genome = genome) %>% print()
     dev.off()
   } else if(group == "co"){
     cat(c("-> plotting", gene, "in Co group\n"))
     png(paste(group,gene,".png"))
     all %>% 
       select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_CO, ip_L_V_L_CO_BAP) %>% 
-      visualizeGene(gene, betas = ., platform = platform) %>% print()
+      visualizeGene(gene, betas = ., platform = platform, genome = genome) %>% print()
     dev.off()
   } else if(group == "lcd"){
     cat(c("-> plotting", gene, "in L_Cd group\n"))
     png(paste(group,gene,".png"))
     all %>% 
       select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_LCD, ip_L_V_L_LCD_BAP) %>% 
-      visualizeGene(gene, betas = ., platform = platform) %>% print()
+      visualizeGene(gene, betas = ., platform = platform, genome = genome) %>% print()
     dev.off()
   } else if(group == "hcd"){
     cat(c("-> plotting", gene, "in H_Cd group\n"))
     png(paste(group,gene,".png"))
     all %>% 
       select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_HCD, ip_L_V_L_HCD_BAP) %>% 
-      visualizeGene(gene, betas = ., platform = platform) %>% print()
+      visualizeGene(gene, betas = ., platform = platform, genome = genome) %>% print()
     dev.off()
   } else{
     cat("error")
@@ -145,39 +146,40 @@ save_image <- function(x = all,
 map <- function(x = all, 
                 group = all,
                 gene = gene,
-                platform = "EPIC"){
+                platform = "EPIC",
+                genome = "hg38"){
   if(group == "all"){
-    cat(c("-> plotting", gene, "in all group\n"))
-    visualizeGene(gene, betas = all, platform = platform) %>% print()
+    cat(c("-> plotting", gene, "in all group mapping", genome,"\n"))
+    visualizeGene(gene, betas = all, platform = platform, genome = genome) %>% print()
   } else if(group == "as"){
-    cat(c("-> plotting", gene, "in As group\n"))
+    cat(c("-> plotting", gene, "in As group mapping", genome,"\n"))
     all %>% 
       select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_AS, ip_L_V_L_AS_BAP) %>% 
-      visualizeGene(gene, betas = ., platform = platform) %>% print()
+      visualizeGene(gene, betas = ., platform = platform, genome = genome) %>% print()
   } else if(group == "co"){
-    cat(c("-> plotting", gene, "in Co group\n"))
+    cat(c("-> plotting", gene, "in Co group mapping", genome,"\n"))
     all %>% 
       select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_CO, ip_L_V_L_CO_BAP) %>% 
-      visualizeGene(gene, betas = ., platform = platform) %>% print()
+      visualizeGene(gene, betas = ., platform = platform, genome = genome) %>% print()
   } else if(group == "lcd"){
-    cat(c("-> plotting", gene, "in L_Cd group\n"))
+    cat(c("-> plotting", gene, "in L_Cd ggroup mapping", genome,"\n"))
     all %>% 
       select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_LCD, ip_L_V_L_LCD_BAP) %>% 
-      visualizeGene(gene, betas = ., platform = platform) %>% print()
+      visualizeGene(gene, betas = ., platform = platform, genome = genome) %>% print()
   } else if(group == "hcd"){
-    cat(c("-> plotting", gene, "in H_Cd group\n"))
+    cat(c("-> plotting", gene, "in H_Cd group mapping", genome,"\n"))
     all %>% 
       select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_HCD, ip_L_V_L_HCD_BAP) %>% 
-      visualizeGene(gene, betas = ., platform = platform) %>% print()
+      visualizeGene(gene, betas = ., platform = platform, genome = genome) %>% print()
   } else{
     cat("error")
   }
 }
 # use map function to plot gene on chromosome
-map(x = all, group = "co", gene ="APEX1")
+map(x = all, group = "co", gene ="NFKB1")
 
 # chromosome visualization by Probe ID -----------------------------------
-visualizeProbes(c("cg02382400", "cg03738669"), all, platform='EPIC')
+visualizeProbes(c("cg02382400", "cg03738669"), all, platform='EPIC', genome = "hg38")
 
 
 # KnowYourCG Visualization -----------------------------------------------
