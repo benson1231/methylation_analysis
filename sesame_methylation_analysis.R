@@ -3,7 +3,6 @@ library(sesame)
 library(dplyr)
 library(illuminaio)
 library(ggplot2)
-sesameDataCache()
 
 # 工作位置 ---------------------------------------------------------------------
 setwd("/Users/benson/Documents/project/methy1")
@@ -45,36 +44,148 @@ rownames(agg) <- agg$Group.1
 agg <- agg[,2:14]
 
 # 讀檔(已整理) -----------------------------------------------------------------
+# beta為所有probe與組別的beta value matrix(在raw data資料夾中，手動匯入)
+beta <- as.data.frame(beta)
 agg <- readRDS("/Users/benson/Documents/project/methy1/agg.RDS")  # 差異表達probe
 all <- readRDS("/Users/benson/Documents/project/methy1/all.RDS")  # 全部probe
 
-# visualization -----------------------------------------------------------
-# By Genomic Region
+# chromosome visualization by Genomic Region -----------------------------
 visualizeRegion(
   'chr19',10260000,10380000, all, platform='EPIC',
   show.probeNames = TRUE)
 
-# By Gene Name
+# chromosome visualization by Gene Name ----------------------------------
 visualizeGene("APEX1", betas = all, platform='EPIC')
-
-# By Probe ID
-visualizeProbes(c("cg02382400", "cg03738669"), all, platform='EPIC')
-
+# 組別分開
+all %>% 
+  select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_AS, ip_L_V_L_AS_BAP) %>% 
+  visualizeGene("TP53", betas = ., platform='EPIC')
+all %>% 
+  select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_CO, ip_L_V_L_CO_BAP) %>% 
+  visualizeGene("TP53", betas = ., platform='EPIC')
+all %>% 
+  select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_LCD, ip_L_V_L_LCD_BAP) %>% 
+  visualizeGene("TP53", betas = ., platform='EPIC')
+all %>% 
+  select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_HCD, ip_L_V_L_HCD_BAP) %>% 
+  visualizeGene("TP53", betas = ., platform='EPIC')
 
 ### gene name output
 gene_list <- c("APEX1","TP53","BRCA1")
 for(i in gene_list){
-  png(paste0(i,"_gene.png"), height = 800)
+  png(paste0(i,"_gene.png"))
   visualizeGene(i, betas = all, platform='EPIC') %>% print()
   dev.off()
 }
+for(i in gene_list){
+  png(paste0(i,"As_gene.png"))
+  all %>% 
+    select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_AS, ip_L_V_L_AS_BAP) %>% 
+    visualizeGene(i, betas = ., platform='EPIC') %>% print()
+  dev.off()
+  png(paste0(i,"Co_gene.png"))
+  all %>% 
+    select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_CO, ip_L_V_L_CO_BAP) %>% 
+    visualizeGene("TP53", betas = ., platform='EPIC') %>% print()
+  dev.off()
+  png(paste0(i,"L_Cd_gene.png"))
+  all %>% 
+    select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_LCD, ip_L_V_L_LCD_BAP) %>% 
+    visualizeGene("TP53", betas = ., platform='EPIC') %>% print()
+  dev.off()
+  png(paste0(i,"H_Cd_gene.png"))
+  all %>% 
+    select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_HCD, ip_L_V_L_HCD_BAP) %>% 
+    visualizeGene("TP53", betas = ., platform='EPIC') %>% print()
+  dev.off()
+}
+
+# function for chromosome visualization by Gene Name ---------------------------
+save_image <- function(x = all, 
+                group = all,
+                gene = gene,
+                platform = "EPIC"){
+  if(group == "all"){
+    cat(c("-> plotting", gene, "in all group\n"))
+    png(paste(group,gene,".png"))
+    visualizeGene(gene, betas = all, platform = platform) %>% print()
+    dev.off()
+  } else if(group == "as"){
+    cat(c("-> plotting", gene, "in As group\n"))
+    png(paste(group,gene,".png"))
+    all %>% 
+      select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_AS, ip_L_V_L_AS_BAP) %>% 
+      visualizeGene(gene, betas = ., platform = platform) %>% print()
+    dev.off()
+  } else if(group == "co"){
+    cat(c("-> plotting", gene, "in Co group\n"))
+    png(paste(group,gene,".png"))
+    all %>% 
+      select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_CO, ip_L_V_L_CO_BAP) %>% 
+      visualizeGene(gene, betas = ., platform = platform) %>% print()
+    dev.off()
+  } else if(group == "lcd"){
+    cat(c("-> plotting", gene, "in L_Cd group\n"))
+    png(paste(group,gene,".png"))
+    all %>% 
+      select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_LCD, ip_L_V_L_LCD_BAP) %>% 
+      visualizeGene(gene, betas = ., platform = platform) %>% print()
+    dev.off()
+  } else if(group == "hcd"){
+    cat(c("-> plotting", gene, "in H_Cd group\n"))
+    png(paste(group,gene,".png"))
+    all %>% 
+      select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_HCD, ip_L_V_L_HCD_BAP) %>% 
+      visualizeGene(gene, betas = ., platform = platform) %>% print()
+    dev.off()
+  } else{
+    cat("error")
+  }
+}
+map <- function(x = all, 
+                group = all,
+                gene = gene,
+                platform = "EPIC"){
+  if(group == "all"){
+    cat(c("-> plotting", gene, "in all group\n"))
+    visualizeGene(gene, betas = all, platform = platform) %>% print()
+  } else if(group == "as"){
+    cat(c("-> plotting", gene, "in As group\n"))
+    all %>% 
+      select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_AS, ip_L_V_L_AS_BAP) %>% 
+      visualizeGene(gene, betas = ., platform = platform) %>% print()
+  } else if(group == "co"){
+    cat(c("-> plotting", gene, "in Co group\n"))
+    all %>% 
+      select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_CO, ip_L_V_L_CO_BAP) %>% 
+      visualizeGene(gene, betas = ., platform = platform) %>% print()
+  } else if(group == "lcd"){
+    cat(c("-> plotting", gene, "in L_Cd group\n"))
+    all %>% 
+      select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_LCD, ip_L_V_L_LCD_BAP) %>% 
+      visualizeGene(gene, betas = ., platform = platform) %>% print()
+  } else if(group == "hcd"){
+    cat(c("-> plotting", gene, "in H_Cd group\n"))
+    all %>% 
+      select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_HCD, ip_L_V_L_HCD_BAP) %>% 
+      visualizeGene(gene, betas = ., platform = platform) %>% print()
+  } else{
+    cat("error")
+  }
+}
+# use map function to plot gene on chromosome
+map(x = all, group = "co", gene ="APEX1")
+
+# chromosome visualization by Probe ID -----------------------------------
+visualizeProbes(c("cg02382400", "cg03738669"), all, platform='EPIC')
 
 
-# GO analysis -------------------------------------------------------------
-# GO
-results <- testEnrichment(rownames(beta)[1:100], platform = "EPIC")
-
-
+# KnowYourCG Visualization -----------------------------------------------
+# test the enrichment over database groups
+results <- testEnrichment(rownames(beta)[1:50], platform = "EPIC")
+head(results)
+# plot
+KYCG_plotEnrichAll(results)
 # dotplot
 KYCG_plotDot(results)
 # barplot
@@ -84,11 +195,57 @@ p1 <- KYCG_plotBar(results, label=TRUE)
 p2 <- KYCG_plotBar(results, y="estimate") + ylab("log2(Odds Ratio)") +
   xlab("") + theme(axis.text.y = element_blank())
 WGG(p1) + WGG(p2, RightOf(width=0.5, pad=0))
+# volcano plot
+results_2tailed <- testEnrichment(rownames(beta)[1:50], "TFBS", alternative = "two.sided")
+KYCG_plotVolcano(results_2tailed)
+# Waterfall plot
+KYCG_plotWaterfall(results)
 
-# 
-results_pgc <- testEnrichment(betas$ID, platform="EPIC")
-head(results_pgc)
-KYCG_plotEnrichAll(results_pgc)
+# detail of database 
+KYCG_listDBGroups("EPIC")
+dbs <- KYCG_getDBs("MM285.design")
+str(dbs[["PGCMeth"]])
+
+
+# Gene Enrichment -------------------------------------------------------------
+query <- names(sesameData_getProbesByGene("EGFR", "EPIC"))
+results <- testEnrichment(query, 
+                          KYCG_buildGeneDBs(query, max_distance=100000, platform="EPIC"),
+                          platform="EPIC")
+results[,c("dbname","estimate","gene_name","FDR", "nQ", "nD", "overlap")]
+# lollipop plot
+KYCG_plotLollipop(results, label="gene_name")
+# volcano plot
+KYCG_plotVolcano(results)
+
+
+# GO/Pathway Enrichment ---------------------------------------------------
+genes <- sesameData_getGenesByProbes(query, platform="EPIC")
+genes
+# perform Gene ontology enrichment analysis
+library(gprofiler2)
+## use gene name
+gostres <- gost(genes$gene_name, organism = "hsapiens")
+gostres$result[order(gostres$result$p_value),]
+gostplot(gostres)
+
+## use Ensembl gene ID, note we need to remove the version suffix
+gene_ids <- sapply(strsplit(names(genes),"\\."), function(x) x[1])
+gostres <- gost(gene_ids, organism = "hsapiens")
+gostres$result[order(gostres$result$p_value),]
+gostplot(gostres)
+
+
+# Set Enrichment Analysis -------------------------------------------------
+query <- KYCG_getDBs("KYCG.MM285.designGroup")[["TSS"]]
+res <- testEnrichmentSEA(query, "MM285.seqContextN")
+res[, c("dbname", "test", "estimate", "FDR", "nQ", "nD", "overlap")]
+
+query <- KYCG_getDBs("KYCG.MM285.designGroup")[["TSS"]]
+db <- KYCG_getDBs("MM285.seqContextN", "distToTSS")
+res <- testEnrichmentSEA(aza, db, prepPlot = TRUE)
+KYCG_plotSetEnrichment(res[[1]])
+
 
 
 
