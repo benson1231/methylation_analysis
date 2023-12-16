@@ -49,12 +49,12 @@ beta <- as.data.frame(beta)
 agg <- readRDS("/Users/benson/Documents/project/methy1/agg.RDS")  # 差異表達probe
 all <- readRDS("/Users/benson/Documents/project/methy1/all.RDS")  # 全部probe
 
-# chromosome visualization by Genomic Region -----------------------------
+# 1.chromosome visualization by Genomic Region -----------------------------
 visualizeRegion(
   "chr7",55019017,55211628, all, platform='EPIC', genome = "hg38",
   show.probeNames = TRUE)
 
-# chromosome visualization by Gene Name ----------------------------------
+# 2.chromosome visualization by Gene Name ----------------------------------
 visualizeGene("APEX1", betas = all, platform='EPIC', genome = "hg38")
 # 組別分開
 all %>% 
@@ -176,16 +176,17 @@ map <- function(x = all,
   }
 }
 # use map function to plot gene on chromosome
-map(x = all, group = "co", gene ="NFKB1")
+map(x = all, group = "hcd", gene ="APEX1")
 
-# chromosome visualization by Probe ID -----------------------------------
+# 3.chromosome visualization by Probe ID -----------------------------------
 visualizeProbes(c("cg02382400", "cg03738669"), all, platform='EPIC', genome = "hg38")
 
 
-# KnowYourCG Visualization -----------------------------------------------
+# 4.KnowYourCG Visualization -----------------------------------------------
 # test the enrichment over database groups
-results <- testEnrichment(rownames(beta)[1:50], platform = "EPIC")
+results <- testEnrichment(as$probeID, platform = "EPIC")
 head(results)
+
 # plot
 KYCG_plotEnrichAll(results)
 # dotplot
@@ -198,18 +199,12 @@ p2 <- KYCG_plotBar(results, y="estimate") + ylab("log2(Odds Ratio)") +
   xlab("") + theme(axis.text.y = element_blank())
 WGG(p1) + WGG(p2, RightOf(width=0.5, pad=0))
 # volcano plot
-results_2tailed <- testEnrichment(rownames(beta)[1:50], "TFBS", alternative = "two.sided")
+results_2tailed <- testEnrichment(as$probeID, "TFBS", alternative = "two.sided")
 KYCG_plotVolcano(results_2tailed)
 # Waterfall plot
 KYCG_plotWaterfall(results)
 
-# detail of database 
-KYCG_listDBGroups("EPIC")
-dbs <- KYCG_getDBs("MM285.design")
-str(dbs[["PGCMeth"]])
-
-
-# Gene Enrichment -------------------------------------------------------------
+# 5.Gene Enrichment -------------------------------------------------------------
 query <- names(sesameData_getProbesByGene("EGFR", "EPIC"))
 results <- testEnrichment(query, 
                           KYCG_buildGeneDBs(query, max_distance=100000, platform="EPIC"),
@@ -221,15 +216,25 @@ KYCG_plotLollipop(results, label="gene_name")
 KYCG_plotVolcano(results)
 
 
-# GO/Pathway Enrichment ---------------------------------------------------
-genes <- sesameData_getGenesByProbes(query, platform="EPIC")
+# 6.Database Sets -----------------------------------------------------------
+KYCG_listDBGroups("EPIC")
+dbs <- KYCG_getDBs("MM285.design")
+str(dbs[["PGCMeth"]])
+# 查詢database中探針ID
+df <- SummarizedExperiment::rowData(sesameDataGet('EPIC.tissueSignature'))
+query <- df$Probe_ID[df$branch == "B_cell"]
+head(query)
+
+# 7.GO/Pathway Enrichment ---------------------------------------------------
+# 獲得與探針組相關的所有基因
+genes <- sesameData_getGenesByProbes(rownames(all)[1:50], platform="EPIC", genome = "hg38")
 genes
 # perform Gene ontology enrichment analysis
 library(gprofiler2)
 ## use gene name
 gostres <- gost(genes$gene_name, organism = "hsapiens")
 gostres$result[order(gostres$result$p_value),]
-gostplot(gostres)
+gostplot(gostres, interactive = T)
 
 ## use Ensembl gene ID, note we need to remove the version suffix
 gene_ids <- sapply(strsplit(names(genes),"\\."), function(x) x[1])
@@ -238,7 +243,7 @@ gostres$result[order(gostres$result$p_value),]
 gostplot(gostres)
 
 
-# Set Enrichment Analysis -------------------------------------------------
+# 8.Set Enrichment Analysis -------------------------------------------------
 query <- KYCG_getDBs("KYCG.MM285.designGroup")[["TSS"]]
 res <- testEnrichmentSEA(query, "MM285.seqContextN")
 res[, c("dbname", "test", "estimate", "FDR", "nQ", "nD", "overlap")]
@@ -249,7 +254,34 @@ res <- testEnrichmentSEA(aza, db, prepPlot = TRUE)
 KYCG_plotSetEnrichment(res[[1]])
 
 
+query <- names(sesameData_getManifestGRanges("MM285"))
+anno <- KYCG_annoProbes(query, "designGroup", silent = TRUE)
 
+# gviz ---------------------------------------------------------------------
+a <- createUCSCtrack(betas = all$ip_L_V_L_CON,platform = "EPIC",genome = "hg38")
+library(Gviz)
+library(GenomicRanges)
+cpgIslands <- GenomicRanges::makeGRangesFromDataFrame(a,start.field = "beg", 
+                                        end.field = "end",seqnames.field = "chrm")
+chr <- as.character(unique(seqnames(cpgIslands)))
+gen <- genome(cpgIslands)
+atrack <- AnnotationTrack(cpgIslands, name = "CpG")
+plotTracks(atrack)
 
+# from IDAT --------------------------------------------------------------------
+
+setwd("/Users/benson/Documents/raw_data/methy1_metal/raw_data/207510030096")
+con <- openSesame(x = "207510030096_R01C01",platform = "EPICv2",func = getBetas,
+                  collapseToPfx=TRUE) %>% 
+  as.data.frame()
+visualizeGene("APEX1", betas = con, platform='EPIC', genome = "hg38")
+prepSesameList()
+
+sdf <- readIDATpair("207510030096_R01C01")
+betas = getBetas(sdf) # retrieve beta values
+head(betas)
+sesameQC_plotRedGrnQQ(sdf)
+sesameQC_plotIntensVsBetas(sdf)
+segs <- cnSegmentation(sdf)
 
 
