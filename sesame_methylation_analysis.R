@@ -1,6 +1,6 @@
 # 0.load package ------------------------------------------------------------
 library(sesame)
-library(BiocParallell)
+library(BiocParallel)
 library(tidyverse)
 library(ggplot2)
 library(wheatmap)
