@@ -339,7 +339,6 @@ KYCG_plotEnrichAll(results, short_label = T, n_label = 30)
 # dotplot
 KYCG_plotDot(results)
 
-
 # barplot
 library(ggplot2)
 library(wheatmap)
@@ -350,9 +349,7 @@ WGG(p1) + WGG(p2, RightOf(width=0.5, pad=0))
 # Waterfall plot
 KYCG_plotWaterfall(results)
 
-
-
-# function ----------------------------------------------------------------
+# Venn Diagram function -----------------------------------------------------
 vendir <- function(delta = delta,
                    delta_beta = 0.1,
                    up_down = "all"){
@@ -469,7 +466,7 @@ vendir <- function(delta = delta,
 
 vendir(delta = delta, up_down = "down", delta_beta = 0.1)
 
-# plot --------------------------------------------------------------------
+# Scatterplot -----------------------------------------------------------------
 library(jamba)
 library(TeachingDemos)
 library(viridisLite)
