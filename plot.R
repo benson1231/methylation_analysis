@@ -1,9 +1,10 @@
+# function code block
 ass <- function(
     betas, txns, probes, plt.txns, plt.mapLines, plt.cytoband,
     heat.height = NULL, mapLine.height = 0.2,
     show.probeNames = TRUE, show.samples.n = NULL,
     show.sampleNames = TRUE, sample.name.fontsize = 10,
-    dmin = 0, dmax = 1) {
+    dmin = 0, dmax = 1, color = "Blues") {
   
   if (is.null(show.samples.n)) { show.samples.n <- ncol(betas); }
   if (is.null(heat.height) && length(txns) > 0) {
@@ -13,7 +14,7 @@ ass <- function(
   w <- w + WHeatmap(
     t(betas), Beneath(height = heat.height),
     name = 'betas',
-    cmp = CMPar(dmin=dmin, dmax=dmax, brewer.name = "RdBu"),
+    cmp = CMPar(dmin=dmin, dmax=dmax, brewer.name = color),
     xticklabels = show.probeNames,
     xticklabel.rotat = 45,
     yticklabels = show.sampleNames,
