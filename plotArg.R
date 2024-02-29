@@ -1,10 +1,21 @@
-# function code block
+### use three modified function below ----------------------------------
+# chromosome visualization by Genomic Region
+vis("chr17",7661779,7687538, all, platform='EPIC', genome = "hg38",
+show.probeNames = TRUE, draw = T)
+# chromosome visualization by Gene name
+visgene("CDKN1B", all, platform = "EPIC", genome = 'hg38')+
+  WLegendV("betas", TopRightOf("betas"))
+# chromosome visualization by Probe ID 
+visProbes("cg03487391", all, platform='EPIC', genome = "hg38") +
+  WLegendV("betas", TopRightOf("betas"))
+
+# function code block ----------------------------------------------------
 ass <- function(
     betas, txns, probes, plt.txns, plt.mapLines, plt.cytoband,
     heat.height = NULL, mapLine.height = 0.2,
     show.probeNames = TRUE, show.samples.n = NULL,
     show.sampleNames = TRUE, sample.name.fontsize = 10,
-    dmin = 0, dmax = 1, color = "Blues") {
+    dmin = 0, dmax = 1) {
   
   if (is.null(show.samples.n)) { show.samples.n <- ncol(betas); }
   if (is.null(heat.height) && length(txns) > 0) {
@@ -14,7 +25,8 @@ ass <- function(
   w <- w + WHeatmap(
     t(betas), Beneath(height = heat.height),
     name = 'betas',
-    cmp = CMPar(dmin=dmin, dmax=dmax, brewer.name = color),
+    cmp = CMPar(dmin=dmin, dmax=dmax,colorspace.name = "diverge_hsv", 
+                stop.points=c("blue","yellow")),
     xticklabels = show.probeNames,
     xticklabel.rotat = 45,
     yticklabels = show.sampleNames,
@@ -66,6 +78,62 @@ vis <- function(chrm, beg, end, betas, platform = NULL,
                   plt.txns, plt.mapLines, plt.cytoband, ...)
   } else { return(betas); }
 }
+
+visProbes <- function(
+    probeNames, betas,
+    platform = NULL, genome = NULL,
+    upstream = 1000, dwstream = 1000, ...) {
+  
+  if (is.null(dim(betas))) { betas <- as.matrix(betas); }
+  platform <- sesameData_check_platform(platform, rownames(betas))
+  genome <- sesameData_check_genome(genome, platform)
+  
+  probes <- sesameData_getManifestGRanges(platform, genome)
+  probeNames <- probeNames[probeNames %in% names(probes)]
+  
+  if (length(probeNames)==0)
+    stop('Probes specified are not well mapped.')
+  
+  target.probes <- probes[probeNames]
+  
+  regBeg <- min(GenomicRanges::start(target.probes)) - upstream
+  regEnd <- max(GenomicRanges::end(target.probes)) + dwstream
+  
+  vis(
+    as.character(GenomicRanges::seqnames(
+      target.probes[1])), regBeg, regEnd,
+    betas, platform = platform, genome = genome, ...)
+}
+
+# visualizeGene
+visgene <- function(gene_name, betas,
+                    platform = NULL, genome = NULL,
+                    upstream = 2000, dwstream = 2000, ...) {
+  
+  if (is.null(dim(betas))) { betas <- as.matrix(betas); }
+  platform <- sesameData_check_platform(platform, rownames(betas))
+  genome <- sesameData_check_genome(genome, platform)
+  
+  txns <- sesameData_getGenomeInfo(genome)$txns
+  target.txns <- txns[GenomicRanges::mcols(txns)$gene_name == gene_name]
+  stopifnot(length(target.txns) > 0)
+  target.strand <- as.character(GenomicRanges::strand(target.txns[[1]][1]))
+  if (target.strand == '+') {
+    pad.start <- upstream
+    pad.end <- dwstream
+  } else {
+    pad.start <- dwstream
+    pad.end <- upstream
+  }
+  
+  merged.exons <- GenomicRanges::reduce(unlist(target.txns))
+  vis(
+    as.character(GenomicRanges::seqnames(merged.exons[1])),
+    min(GenomicRanges::start(merged.exons)) - pad.start,
+    max(GenomicRanges::end(merged.exons)) + pad.end,
+    betas, platform = platform, genome = genome, ...)
+}
+
 exonToCDS <- function(exons, cdsStart, cdsEnd) {
     if (is.na(cdsStart) || is.na(cdsEnd) || cdsEnd <= cdsStart) {
         return(NULL); } 
@@ -237,7 +305,7 @@ assemble_plots <- function(
     w <- w + WHeatmap(
         t(betas), Beneath(height = heat.height),
         name = 'betas',
-        cmp = CMPar(dmin=dmin, dmax=dmax),
+        cmp = CMPar(dmin=dmin, dmax=dmax, label2color = col_f),
         xticklabels = show.probeNames,
         xticklabel.rotat = 45,
         yticklabels = show.sampleNames,
@@ -307,32 +375,5 @@ MapToContinuousColors <- function(data, cmp=CMPar(), given.cm=NULL) {
   cm
 }
 
-# visualizeGene
-visgene <- function(gene_name, betas,
-                          platform = NULL, genome = NULL,
-                          upstream = 2000, dwstream = 2000, ...) {
-  
-  if (is.null(dim(betas))) { betas <- as.matrix(betas); }
-  platform <- sesameData_check_platform(platform, rownames(betas))
-  genome <- sesameData_check_genome(genome, platform)
-  
-  txns <- sesameData_getGenomeInfo(genome)$txns
-  target.txns <- txns[GenomicRanges::mcols(txns)$gene_name == gene_name]
-  stopifnot(length(target.txns) > 0)
-  target.strand <- as.character(GenomicRanges::strand(target.txns[[1]][1]))
-  if (target.strand == '+') {
-    pad.start <- upstream
-    pad.end <- dwstream
-  } else {
-    pad.start <- dwstream
-    pad.end <- upstream
-  }
-  
-  merged.exons <- GenomicRanges::reduce(unlist(target.txns))
-  vis(
-    as.character(GenomicRanges::seqnames(merged.exons[1])),
-    min(GenomicRanges::start(merged.exons)) - pad.start,
-    max(GenomicRanges::end(merged.exons)) + pad.end,
-    betas, platform = platform, genome = genome, ...)
-}
+
 
