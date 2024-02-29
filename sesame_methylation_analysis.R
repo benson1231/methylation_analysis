@@ -4,7 +4,13 @@ library(BiocParallel)
 library(tidyverse)
 library(wheatmap)
 library(ggVennDiagram)
-
+library(ComplexHeatmap)
+library(Gviz)
+library(GenomicRanges)
+library(RColorBrewer)
+library(colorspace)
+library(circlize)
+library(openxlsx)
 
 # 1.load data and preprocess data using QCDPB -----------------------------
 # load sample list
@@ -100,6 +106,7 @@ all <- betas_pre %>% na.omit()
 
 # 4.visualization -----------------------------------------------------------
 # create function for chromosome visualization by Gene Name(need betas_pre)
+source("plotArg.R")
 map <- function(x = betas_pre, 
                 group = "all",
                 gene = gene,
@@ -107,51 +114,54 @@ map <- function(x = betas_pre,
                 genome = "hg38"){
   if(group == "all"){
     cat(c("-> plotting", gene, "in all group mapping", genome,"\n"))
-    visualizeGene(gene, betas = x, platform = platform, genome = genome) +
+    visgene(gene, betas = x, platform = platform, genome = genome) +
       WLegendV("betas", TopRightOf("betas"))
   } else if(group == "as"){
     cat(c("-> plotting", gene, "in As group mapping", genome,"\n"))
     x %>% as.data.frame() %>% 
       select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_AS, ip_L_V_L_AS_BAP) %>%
       as.matrix() %>% 
-      visualizeGene(gene, betas = ., platform = platform, genome = genome) +
+      visgene(gene, betas = ., platform = platform, genome = genome) +
       WLegendV("betas", TopRightOf("betas")) 
   } else if(group == "co"){
     cat(c("-> plotting", gene, "in Co group mapping", genome,"\n"))
     x %>% as.data.frame() %>% 
       select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_CO, ip_L_V_L_CO_BAP) %>% 
       as.matrix() %>% 
-      visualizeGene(gene, betas = ., platform = platform, genome = genome) +
+      visgene(gene, betas = ., platform = platform, genome = genome) +
       WLegendV("betas", TopRightOf("betas"))
   } else if(group == "lcd"){
     cat(c("-> plotting", gene, "in L_Cd ggroup mapping", genome,"\n"))
     x %>% as.data.frame() %>% 
       select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_LCD, ip_L_V_L_LCD_BAP) %>% 
       as.matrix() %>% 
-      visualizeGene(gene, betas = ., platform = platform, genome = genome) +
+      visgene(gene, betas = ., platform = platform, genome = genome) +
       WLegendV("betas", TopRightOf("betas")) 
   } else if(group == "hcd"){
     cat(c("-> plotting", gene, "in H_Cd group mapping", genome,"\n"))
     x %>% as.data.frame() %>% 
       select(ip_L_V_L_CON, ip_L_V_L_DMS, ip_L_V_L_BAP, ip_L_V_L_HCD, ip_L_V_L_HCD_BAP) %>%
       as.matrix() %>% 
-      visualizeGene(gene, betas = ., platform = platform, genome = genome) +
+      visgene(gene, betas = ., platform = platform, genome = genome) +
       WLegendV("betas", TopRightOf("betas"))
   } else{
     cat("error")
   }
 }
 # use map function to plot gene on chromosome
-map(x = all, group = "all", gene ="EGFR")
+map(x = all, group = "all", gene ="GADD45B")
+
+# chromosome visualization by Gene name
+visgene("CDKN1B", all, platform='EPIC', genome = "hg38") +
+  WLegendV("betas", TopRightOf("betas"))
 
 # chromosome visualization by Genomic Region 
-visualizeRegion(
-  "chr17",7661779,7687538, all, platform='EPIC', genome = "hg38",
+vis("chr17",7661779,7687538, all, platform='EPIC', genome = "hg38",
   show.probeNames = TRUE) +
   WLegendV("betas", TopRightOf("betas")) 
 
 # chromosome visualization by Probe ID 
-visualizeProbes("cg03487391", all, platform='EPIC', genome = "hg38") +
+visProbes("cg03487391", all, platform='EPIC', genome = "hg38") +
   WLegendV("betas", TopRightOf("betas")) 
 
 
@@ -192,6 +202,13 @@ LCD_BAP_0.1 <- delta %>% filter(abs(delta_LCD_BAP) > 0.1) %>%
 HCD_BAP_0.1 <- delta %>% filter(abs(delta_HCD_BAP) > 0.1) %>% 
   select(delta_HCD_BAP, ip_L_V_L_DMS, ip_L_V_L_HCD_BAP)
 
+probe_0.1 <- c(rownames(AZA_0.1), rownames(DAC_0.1), 
+               rownames(AS_0.1), rownames(CO_0.1),
+               rownames(LCD_0.1), rownames(HCD_0.1),
+               rownames(BAP_0.1), rownames(AS_BAP_0.1),
+               rownames(CO_BAP_0.1), rownames(LCD_BAP_0.1),
+               rownames(HCD_BAP_0.1))
+probe_0.1_pre <- sapply(probe_0.1, function(x) substr(x, 1, 10)) %>% as.list()
 
 # 6.venn diagram of all(up and down probes,>0.1 and <-0.1) -----------------------------
 aza_dac_all <- list(AZA = rownames(AZA_0.1),
@@ -349,6 +366,10 @@ WGG(p1) + WGG(p2, RightOf(width=0.5, pad=0))
 # Waterfall plot
 KYCG_plotWaterfall(results)
 
+# 11.delta beta 0.1 filter ------------------------------------------------
+all <- all %>% as_data_frame()
+beta_0.1 <- all %>% filter(row.names(all) %in% probe_0.1_pre)
+
 # Venn Diagram function -----------------------------------------------------
 vendir <- function(delta = delta,
                    delta_beta = 0.1,
@@ -491,7 +512,53 @@ track <- createUCSCtrack(betas = betas, platform = "EPICv2",genome = "hg38")
 head(track)
 
 # get beta value of target gene probe -------------------------------------
-target <- visualizeRegion(
-  "chr17",7661779,7687538, all, platform='EPIC', genome = "hg38",
-  show.probeNames = TRUE, draw = F) 
+visualizeRegion("chr17",7661779,7687538, all, platform='EPIC', genome = "hg38",
+                show.probeNames = TRUE, draw = F)
 ComplexHeatmap::Heatmap(target)
+target$name
+
+# plot heatmap
+heat <- visualizeGene("RASSF1", betas = all, platform = "EPIC", genome = 'hg38', draw = F)
+col_f = colorRamp2(c(0, 0.5, 1), c("blue", "white", "yellow"))
+ComplexHeatmap::Heatmap(heat, col = col_f)
+
+# visualization genome data(Gviz) ----------------------------------------------
+
+data(cpgIslands)
+class(cpgIslands)
+
+chr <- as.character(unique(seqnames(cpgIslands)))
+gen <- genome(cpgIslands)
+atrack <- AnnotationTrack(cpgIslands, name = "CpG")
+
+plotTracks(atrack)
+gtrack <- GenomeAxisTrack()
+plotTracks(list(gtrack, atrack))
+itrack <- IdeogramTrack(genome = gen, chromosome = chr)
+plotTracks(list(itrack, gtrack, atrack))
+data(geneModels)
+grtrack <- GeneRegionTrack(geneModels, genome = gen,
+                           chromosome = chr, name = "Gene Model")
+plotTracks(list(itrack, gtrack, atrack, grtrack))
+
+
+
+
+# export to excel ---------------------------------------------------------
+table <- read.table("EPICv2.hg38.manifest.gencode.v41.tsv", header = TRUE)
+gene_table <- table
+
+AZA_0.1$probeID <- rownames(AZA_0.1)
+AZA_0.1 <- AZA_0.1 %>% left_join(table, by = "probeID")
+
+## Create a new workbook
+wb <- createWorkbook()
+
+addWorksheet(wb, sheetName = "AZA_0.1")
+writeData(wb, sheet = "AZA_0.1", x = AZA_0.1, withFilter = openxlsx_getOp("withFilter", T))
+setColWidths(wb, sheet = "AZA_0.1", cols = 1:13, 
+             widths = c(14, 14, 14, 18, 15,14, 14,14,20,20,14,14,14))
+
+## Save workbook
+## Not run: 
+saveWorkbook(wb, "delta_0.1.xlsx", overwrite = TRUE)
