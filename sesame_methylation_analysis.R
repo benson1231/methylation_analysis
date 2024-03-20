@@ -11,6 +11,7 @@ library(RColorBrewer)
 library(colorspace)
 library(circlize)
 library(openxlsx)
+library(magrittr)
 
 # 1.load data and preprocess data using QCDPB -----------------------------
 # load sample list
@@ -50,7 +51,7 @@ sdfs <- "/Users/benson/Documents/project/methy1/sdfs.RDS" %>% readRDS()
 # 2.QC ----------------------------------------------------------------------
 setwd("/Users/benson/Documents/project/methy1")
 # calculate metrics on all IDATs in a specific folder
-qcs <-  openSesame(idat_dir, prep="", func=sesameQC_calcStats)
+qcs <- openSesame(idat_dir, prep="", func=sesameQC_calcStats)
 qcs <- setNames(qcs, sample_list$sample)
 sesameQC <- do.call(rbind, lapply(qcs, as.data.frame))
 # QC for each parameter
@@ -67,6 +68,7 @@ intensity_qc <- intensity_qc %>% setNames(sample_list$sample)
 channel_qc <- channel_qc %>% setNames(sample_list$sample)
 dyeBias_qc <- dyeBias_qc %>% setNames(sample_list$sample)
 betas_qc <- betas_qc %>% setNames(sample_list$sample)
+
 # plot QC parameters
 sesameQC_plotBar(detection_qc)
 ggsave("detection_qc.png")
@@ -93,6 +95,37 @@ for (i in 1:13) {
 }
 dev.off()
 
+# Background Subtraction
+par(mfrow=c(2,3), mar=c(3,3,2,1))
+data_num <- 1
+sesameQC_plotBetaByDesign(sdfs[[data_num]], main="Before", xlab="\beta")
+sesameQC_plotBetaByDesign(noob(sdfs[[1]]), main="Control", xlab="\beta")
+
+pdf("test.pdf")
+par(mfrow=c(2,3), mar=c(3,3,2,1))
+for (i in 13) {
+  sesameQC_plotBetaByDesign(noob(sdfs[[i]]), main=names(sdfs)[i], xlab="\beta")
+}
+dev.off()
+
+# Scatterplot -----------------------------------------------------------------
+library(jamba)
+library(TeachingDemos)
+library(viridisLite)
+library(pals)
+
+TeachingDemos::pairs2(betas[,"ip_L_V_L_DMS"], 
+                      y = betas[,c('ip_L_V_L_LCD_BAP', 'ip_L_V_L_HCD_BAP','ip_L_V_L_DMS'
+                      )], xlabels = 'mock',
+                      #labels(c('1','2','3','4')),
+                      row1attop=T, ylab = c("LCD_BAP",'HCD_BAP',"DMSO"),
+                      main = "L858R LT P1", 
+                      panel=function(x,y){jamba::plotSmoothScatter(x,y,add=T,bwpi=300,
+                                                                   colramp = viridisLite::viridis(256, option = "H")
+                      )})
+dev.copy(png,"output/L858R_P1_plot4.png",width=5,height=10,units="in",res=300)
+dev.off()
+
 
 # 3.get beta value (way 2)-------------------------------------------------
 betas <- openSesame(sdfs, func = getBetas)  # for further use
@@ -106,7 +139,7 @@ all <- betas_pre %>% na.omit()
 
 # 4.visualization -----------------------------------------------------------
 # create function for chromosome visualization by Gene Name(need betas_pre)
-source("plotArg.R")
+source("/Users/benson/Documents/project/methy1/plotArg.R")
 map <- function(x = betas_pre, 
                 group = "all",
                 gene = gene,
@@ -152,7 +185,7 @@ map <- function(x = betas_pre,
 map(x = all, group = "all", gene ="GADD45B")
 
 # chromosome visualization by Gene name
-visgene("CDKN1B", all, platform='EPIC', genome = "hg38") +
+visgene("TP53", all, platform='EPIC', genome = "hg38") +
   WLegendV("betas", TopRightOf("betas"))
 
 # chromosome visualization by Genomic Region 
@@ -180,27 +213,27 @@ delta <- betas %>% as.data.frame(.) %>%
          delta_HCD_BAP = ip_L_V_L_HCD_BAP - ip_L_V_L_DMS)
 
 AZA_0.1 <- delta %>% filter(abs(delta_AZA) > 0.1) %>% 
-  select(delta_AZA, ip_L_V_L_CON, ip_L_V_L_AZA)
+  select(delta_AZA, ip_L_V_L_CON, ip_L_V_L_AZA) %>% arrange(., desc(delta_AZA))
 DAC_0.1 <- delta %>% filter(abs(delta_DAC) > 0.1) %>% 
-  select(delta_DAC, ip_L_V_L_CON, ip_L_V_L_DAC)
+  select(delta_DAC, ip_L_V_L_CON, ip_L_V_L_DAC) %>% arrange(., desc(delta_DAC))
 AS_0.1 <- delta %>% filter(abs(delta_AS) > 0.1) %>% 
-  select(delta_AS, ip_L_V_L_CON, ip_L_V_L_AS)
+  select(delta_AS, ip_L_V_L_CON, ip_L_V_L_AS) %>% arrange(., desc(delta_AS))
 CO_0.1 <- delta %>% filter(abs(delta_CO) > 0.1) %>% 
-  select(delta_CO, ip_L_V_L_CON, ip_L_V_L_CO)
+  select(delta_CO, ip_L_V_L_CON, ip_L_V_L_CO) %>% arrange(., desc(delta_CO))
 LCD_0.1 <- delta %>% filter(abs(delta_LCD) > 0.1) %>% 
-  select(delta_LCD, ip_L_V_L_CON, ip_L_V_L_LCD)
+  select(delta_LCD, ip_L_V_L_CON, ip_L_V_L_LCD) %>% arrange(., desc(delta_LCD))
 HCD_0.1 <- delta %>% filter(abs(delta_HCD) > 0.1) %>% 
-  select(delta_HCD, ip_L_V_L_CON, ip_L_V_L_HCD)
+  select(delta_HCD, ip_L_V_L_CON, ip_L_V_L_HCD) %>% arrange(., desc(delta_HCD))
 BAP_0.1 <- delta %>% filter(abs(delta_BAP) > 0.1) %>% 
-  select(delta_BAP, ip_L_V_L_DMS, ip_L_V_L_BAP)
+  select(delta_BAP, ip_L_V_L_DMS, ip_L_V_L_BAP) %>% arrange(., desc(delta_BAP))
 AS_BAP_0.1 <- delta %>% filter(abs(delta_AS_BAP) > 0.1) %>% 
-  select(delta_AS_BAP, ip_L_V_L_DMS, ip_L_V_L_AS_BAP)
+  select(delta_AS_BAP, ip_L_V_L_DMS, ip_L_V_L_AS_BAP) %>% arrange(., desc(delta_AS_BAP))
 CO_BAP_0.1 <- delta %>% filter(abs(delta_CO_BAP) > 0.1) %>% 
-  select(delta_CO_BAP, ip_L_V_L_DMS, ip_L_V_L_CO_BAP)
+  select(delta_CO_BAP, ip_L_V_L_DMS, ip_L_V_L_CO_BAP) %>% arrange(., desc(delta_CO_BAP))
 LCD_BAP_0.1 <- delta %>% filter(abs(delta_LCD_BAP) > 0.1) %>% 
-  select(delta_LCD_BAP, ip_L_V_L_DMS, ip_L_V_L_LCD_BAP)
+  select(delta_LCD_BAP, ip_L_V_L_DMS, ip_L_V_L_LCD_BAP) %>% arrange(., desc(delta_LCD_BAP))
 HCD_BAP_0.1 <- delta %>% filter(abs(delta_HCD_BAP) > 0.1) %>% 
-  select(delta_HCD_BAP, ip_L_V_L_DMS, ip_L_V_L_HCD_BAP)
+  select(delta_HCD_BAP, ip_L_V_L_DMS, ip_L_V_L_HCD_BAP) %>% arrange(., desc(delta_HCD_BAP))
 
 probe_0.1 <- c(rownames(AZA_0.1), rownames(DAC_0.1), 
                rownames(AS_0.1), rownames(CO_0.1),
@@ -209,6 +242,13 @@ probe_0.1 <- c(rownames(AZA_0.1), rownames(DAC_0.1),
                rownames(CO_BAP_0.1), rownames(LCD_BAP_0.1),
                rownames(HCD_BAP_0.1))
 probe_0.1_pre <- sapply(probe_0.1, function(x) substr(x, 1, 10)) %>% as.list()
+probe_0.1_beta <- betas[probe_0.1,]
+
+
+
+# up or down regulation summary -----------------------------------------
+is_positive <- HCD_BAP_0.1[,1] > 0 
+table(is_positive)
 
 # 6.venn diagram of all(up and down probes,>0.1 and <-0.1) -----------------------------
 aza_dac_all <- list(AZA = rownames(AZA_0.1),
@@ -231,7 +271,7 @@ all_probe <- list(As = rownames(AS_0.1),
                   H_Cd = rownames(HCD_0.1),
                   BAP = rownames(BAP_0.1))
 
-ggVennDiagram(aza_dac_all ,label_percent_digit = 2,) + scale_fill_gradient(low="#FFE4E1",high = "red")
+ggVennDiagram(aza_dac_all ,label_percent_digit = 2) + scale_fill_gradient(low="white",high = "salmon")
 ggVennDiagram(as_all, label_percent_digit = 2) + scale_fill_gradient(low="white",high = "red")
 ggVennDiagram(co_all, label_percent_digit = 2) + scale_fill_gradient(low="#FFE4E1",high = "red")
 ggVennDiagram(lcd_all, label_percent_digit = 2) + scale_fill_gradient(low="#FFE4E1",high = "red")
@@ -342,19 +382,36 @@ ggVennDiagram(hcd_down,label_percent_digit = 2) + scale_fill_gradient(low="blue"
 ggVennDiagram(down_probe,label_percent_digit = 2) + scale_fill_gradient(low="blue",high = "red")
 
 
-# 9.抓出Venn Diagram中的gene list ----------------------------------------
-as_list <- process_region_data(Venn(as_all))
-as_list$item[[3]]
+# another venn ------------------------------------------------------------
+library(VennDiagram)
+len1 <- length(as_all$As) 
+len2 <- length(as_all$BAP) 
+len3 <- length(as_all$As_BAP) 
+venn.diagram(x = as_all, filename = "test.png",  main="Venn diagram",
+             sub="3-way",
+             main.col="red",
+             fill=c("lightgreen", "lightblue", "lightsalmon"),
+             col=c("lightgreen", "lightblue", "lightsalmon"),
+             cat.col=c("green", "blue", "salmon"),
+             area.vector = c(10, 20, 30))
 
-# 10.KnowYourCG Visualization -----------------------------------------------
-# test the enrichment over database groups
-results <- testEnrichment(as_list$item[[3]], platform = "EPICv2")
+# 10.抓出Venn Diagram中的gene list ----------------------------------------
+co_list <- process_region_data(Venn(co_all))
+co_list$item[[1]]
+
+# 11.KnowYourCG Visualization -----------------------------------------------
+# test the enrichment
+results <- testEnrichment(rownames(CO_0.1[1:20987,]), platform = "EPICv2")
 head(results)
 
 # plot
 KYCG_plotEnrichAll(results, short_label = T, n_label = 30)
 # dotplot
 KYCG_plotDot(results)
+# Volcano plot
+KYCG_plotVolcano(results)
+# Waterfall plot
+KYCG_plotWaterfall(results)
 
 # barplot
 library(ggplot2)
@@ -363,8 +420,6 @@ p1 <- KYCG_plotBar(results, label=TRUE)
 p2 <- KYCG_plotBar(results, y="estimate") + ylab("log2(Odds Ratio)") +
   xlab("") + theme(axis.text.y = element_blank())
 WGG(p1) + WGG(p2, RightOf(width=0.5, pad=0))
-# Waterfall plot
-KYCG_plotWaterfall(results)
 
 # 11.delta beta 0.1 filter ------------------------------------------------
 all <- all %>% as_data_frame()
@@ -487,26 +542,6 @@ vendir <- function(delta = delta,
 
 vendir(delta = delta, up_down = "down", delta_beta = 0.1)
 
-# Scatterplot -----------------------------------------------------------------
-library(jamba)
-library(TeachingDemos)
-library(viridisLite)
-library(pals)
-
-TeachingDemos::pairs2(betas[,"ip_L_V_L_DMS"], 
-                      y = betas[,c('ip_L_V_L_LCD_BAP',
-                                   'ip_L_V_L_HCD_BAP',
-                                   'ip_L_V_L_DMS'
-                                   )], xlabels = 'mock',
-       #labels(c('1','2','3','4')),
-       row1attop=T, ylab = c("LCD_BAP",'HCD_BAP',"DMSO"),
-       main = "L858R LT P1", 
-       panel=function(x,y){jamba::plotSmoothScatter(x,y,add=T,bwpi=300,
-                                             colramp = viridisLite::viridis(256, option = "H")
-       )})
-dev.copy(png,"output/L858R_P1_plot4.png",width=5,height=10,units="in",res=300)
-dev.off()
-
 # UCSCtrack ---------------------------------------------------------------
 track <- createUCSCtrack(betas = betas, platform = "EPICv2",genome = "hg38")
 head(track)
@@ -546,7 +581,7 @@ plotTracks(list(itrack, gtrack, atrack, grtrack))
 
 # export to excel ---------------------------------------------------------
 table <- read.table("EPICv2.hg38.manifest.gencode.v41.tsv", header = TRUE)
-gene_table <- table
+cpg_map <- table[,5:6]
 
 AZA_0.1$probeID <- rownames(AZA_0.1)
 AZA_0.1 <- AZA_0.1 %>% left_join(table, by = "probeID")
@@ -562,3 +597,21 @@ setColWidths(wb, sheet = "AZA_0.1", cols = 1:13,
 ## Save workbook
 ## Not run: 
 saveWorkbook(wb, "delta_0.1.xlsx", overwrite = TRUE)
+
+# GSEA --------------------------------------------------------------------
+# https://bioconductor.org/packages/release/bioc/vignettes/methylGSA/inst/doc/methylGSA-vignette.html
+library(methylGSA)
+FullAnnot <- prepareAnnot(cpg_map)
+cpg <- rep(0.001,times=20987) %>% setNames(rownames(CO_0.1[1:20987,]))
+gsea <- methylRRA(cpg.pval = cpg, FullAnnot = FullAnnot, 
+                  method = "ORA", GS.idtype = "SYMBOL", 
+                  GS.type = "GO",  # "GO", "KEGG", "Reactome"
+                  minsize = 100, maxsize = 300)
+head(gsea, 10)
+methylGSA::barplot(gsea, num = 20, colorby = "pvalue", xaxis = "Count")
+
+
+
+
+
+
